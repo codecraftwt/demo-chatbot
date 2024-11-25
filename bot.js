@@ -14,7 +14,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Route for Slack verification (for URL verification)
 app.post("/slack/events", handleMessage);
 
-app.post("/hello", handleHelloCommand);
+// app.post("/hello", handleHelloCommand);
 
 app.listen(port, () => {
   console.log(`Bot is running on port ${port}`);
