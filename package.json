@@ -14,8 +14,10 @@
     "@slack/web-api": "^7.7.0",
     "axios": "^1.7.7",
     "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "mongoose": "^8.8.2",
     "winston": "^3.17.0"
   }
 }
