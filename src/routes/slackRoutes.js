@@ -5,7 +5,7 @@ import {
   handleLoginCommand,
   handleModalSubmission,
   handleGetAppDataCommand,
-  handleAppModalSubmission,
+  // handleAppModalSubmission,
   handleQuestion,
 } from "../controllers/messageController.js";
 
@@ -24,10 +24,12 @@ router.post("/login", handleLoginCommand);
 // Route for handling modal submissions (Slack interactions)
 router.post("/interactions", handleModalSubmission);
 
-// Route for handling the /add_app_id slash command
+// Route for handling the /choose-app slash command
 router.post("/getAppData", handleGetAppDataCommand);
 
 // Route for handling modal submissions getting App ID (Slack interactions)
-router.post("/interactions", handleAppModalSubmission);
+// router.post("/interactions", handleAppModalSubmission);
+
+router.post("/options-load-endpoint");
 
 export default router;

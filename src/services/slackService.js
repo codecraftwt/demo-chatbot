@@ -1,37 +1,9 @@
 import axios from "axios";
 import slackClient from "../config/slackConfig.js";
+import { fetchAppsFromBackend } from "./apiService.js";
 // import dotenv from "dotenv";
 
 // dotenv.config();
-
-// Function to send user credentials to your backend for authentication
-export const authenticateUser = async (email, password) => {
-  try {
-    // Replace with your actual backend API for authentication
-    const response = await axios.post(
-      "https://acme.dev.airrived.ai/api/auth/login",
-      {
-        email: email,
-        password: password,
-      },
-      {
-        headers: {
-          tenantid: "acme",
-        },
-      }
-    );
-    // If the response contains a token, return it
-    if (response.data.access_token) {
-      return response.data.access_token;
-    } else {
-      console.log("Error at credentials at backedn API");
-      throw new Error("Invalid credentials");
-    }
-  } catch (error) {
-    console.log("Error at backedn API", error);
-    throw new Error("Authentication failed");
-  }
-};
 
 // Function to open the login modal (request for email and password)
 export const openLoginModal = async (userId, trigger_id) => {
@@ -118,68 +90,179 @@ export const openLoginModal = async (userId, trigger_id) => {
   }
 };
 
-// Function to open a modal asking for the App ID
-export const openAppIDModal = async (userId, trigger_id) => {
-  const modalPayload = {
-    trigger_id: trigger_id,
-    view: {
-      type: "modal",
-      callback_id: "app_id_modal", // Unique identifier for the modal
-      title: {
-        type: "plain_text",
-        text: "Enter App ID",
-      },
-      blocks: [
-        {
-          type: "section",
-          block_id: "app_id_section",
-          text: {
-            type: "mrkdwn",
-            text: "*Please enter your App ID:*",
-          },
-        },
-        {
-          type: "input",
-          block_id: "app_id_input",
-          label: {
-            type: "plain_text",
-            text: "App ID",
-          },
-          element: {
-            type: "plain_text_input",
-            action_id: "app_id",
-            placeholder: {
-              type: "plain_text",
-              text: "Enter your App ID",
-            },
-            optional: false,
-          },
-        },
-      ],
-      close: {
-        type: "plain_text",
-        text: "Cancel",
-      },
-      submit: {
-        type: "plain_text",
-        text: "Submit",
-      },
-    },
-  };
+// Function to open a modal asking for the App ID (with a list of apps)
+// export const openAppIDModal = async (user_id, trigger_id) => {
+//   try {
+//     console.log("Opening ID modal.........................");
+//     // Fetch the list of apps from your backend or API
+//     const apps = await fetchAppsFromBackend(user_id);
+//     // const apps = [
+//     //   {
+//     //     name: "AggegationAgent",
+//     //     id: 422,
+//     //   },
+//     //   {
+//     //     name: "NewAggegation",
+//     //     id: 412,
+//     //   },
+//     // ];
 
+//     console.log("Apps got successfully.........................");
+//     // Map the apps to Slack select menu options
+//     const appOptions = apps.map((app) => ({
+//       text: {
+//         type: "plain_text",
+//         text: app.name, // Display the app name
+//       },
+//       value: app.id.toString(), // Use the app ID as the value
+//     }));
+
+//     // console.log(appOptions, "appOptions-----------------------");
+
+//     // Create the modal payload
+//     const modalPayload = {
+//       trigger_id: trigger_id,
+//       view: {
+//         type: "modal",
+//         callback_id: "app_id_modal",
+//         title: {
+//           type: "plain_text",
+//           text: "Select an App",
+//         },
+//         blocks: [
+//           {
+//             type: "section",
+//             block_id: "app_list_section",
+//             text: {
+//               type: "mrkdwn",
+//               text: "*Please select an App:*",
+//             },
+//             accessory: {
+//               type: "static_select",
+//               action_id: "app_select", // Unique action ID for the select menu
+//               placeholder: {
+//                 type: "plain_text",
+//                 text: "Select an app",
+//               },
+//               options: appOptions, // List of apps to choose from
+//             },
+//           },
+//         ],
+//         close: {
+//           type: "plain_text",
+//           text: "Cancel",
+//         },
+//         submit: {
+//           type: "plain_text",
+//           text: "Submit",
+//         },
+//       },
+//     };
+
+//     // Open the modal with the app list
+//     await slackClient.views.open(modalPayload);
+//   } catch (error) {
+//     console.error("Error opening modal with app list: ", error);
+//   }
+// };
+
+export const openAppIDModal = async (user_id, trigger_id) => {
   try {
-    await slackClient.views.open(modalPayload);
+    // Step 1: Open the loading modal immediately after receiving the trigger_id
+    const loadingModalPayload = {
+      trigger_id: trigger_id,
+      view: {
+        type: "modal",
+        callback_id: "loading_modal",
+        title: {
+          type: "plain_text",
+          text: "Select an App",
+        },
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "*Loading app list, please wait...*",
+            },
+          },
+        ],
+      },
+    };
+
+    // Open the loading modal
+    const loadingModalResponse = await slackClient.views.open(
+      loadingModalPayload
+    );
+    const viewId = loadingModalResponse.view.id; // Get the view_id for updating the modal
+
+    // Step 2: Fetch the app data asynchronously
+    const apps = await fetchAppsFromBackend(user_id);
+
+    // Step 3: Map the apps to Slack select menu options
+    const appOptions = apps.map((app) => ({
+      text: {
+        type: "plain_text",
+        text: app.name, // Display the app name
+      },
+      value: app.id.toString(), // Use the app ID as the value
+    }));
+
+    // Step 4: Create the actual modal payload with the app list
+    const modalPayload = {
+      view_id: viewId, // Use the view_id to update the existing loading modal
+      view: {
+        type: "modal",
+        callback_id: "app_id_modal",
+        title: {
+          type: "plain_text",
+          text: "Select an App",
+        },
+        blocks: [
+          {
+            type: "section",
+            block_id: "app_list_section",
+            text: {
+              type: "mrkdwn",
+              text: "*Please select an App:*",
+            },
+            accessory: {
+              type: "static_select",
+              action_id: "app_select", // Unique action ID for the select menu
+              placeholder: {
+                type: "plain_text",
+                text: "Select an app",
+              },
+              options: appOptions, // List of apps to choose from
+            },
+          },
+        ],
+        close: {
+          type: "plain_text",
+          text: "Cancel",
+        },
+        submit: {
+          type: "plain_text",
+          text: "Submit",
+        },
+      },
+    };
+
+    // Step 5: Update the modal with the actual app list
+    await slackClient.views.update(modalPayload);
   } catch (error) {
-    console.error("Error opening modal: ", error);
+    console.error("Error opening modal with app list: ", error);
   }
 };
 
 // Function to send a message to Slack user
-export const sendMessageToUser = async (userId, text) => {
+export const sendMessageToUser = async (userId, text, appName) => {
   try {
     await slackClient.chat.postMessage({
       channel: userId,
       text: text,
+      // username: `MyChatBot - ${appName}`,  // Dynamic bot name (includes app name)
+      // icon_emoji: ":robot_face:",  // Set bot emoji or image
     });
     return;
   } catch (error) {
